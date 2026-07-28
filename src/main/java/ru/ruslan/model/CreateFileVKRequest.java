@@ -2,26 +2,24 @@ package ru.ruslan.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.time.Instant;
+
 public class CreateFileVKRequest {
-    private String pathCreateFileVK;
+    private String pathFileVK;
     private String orderId;
     private String exerciseId;
     private String kns;
-
-    @JsonProperty("KNS")
-    private String KNS;
-
     private String billingAccount;
-    private String time;
+    private Instant time;       // формат: 2026-07-05T07:53:03.429Z
     private String epcParams;
 
     // Getters and Setters
-    public String getPathCreateFileVK() {
-        return pathCreateFileVK;
+    public String getPathFileVK() {
+        return pathFileVK;
     }
 
-    public void setPathCreateFileVK(String pathCreateFileVK) {
-        this.pathCreateFileVK = pathCreateFileVK;
+    public void setPathFileVK(String pathFileVK) {
+        this.pathFileVK = pathFileVK;
     }
 
     public String getOrderId() {
@@ -48,14 +46,6 @@ public class CreateFileVKRequest {
         this.kns = kns;
     }
 
-    public String getKNS() {
-        return KNS;
-    }
-
-    public void setKNS(String KNS) {
-        this.KNS = KNS;
-    }
-
     public String getBillingAccount() {
         return billingAccount;
     }
@@ -64,11 +54,11 @@ public class CreateFileVKRequest {
         this.billingAccount = billingAccount;
     }
 
-    public String getTime() {
+    public Instant getTime() {
         return time;
     }
 
-    public void setTime(String time) {
+    public void setTime(Instant time) {
         this.time = time;
     }
 

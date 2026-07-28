@@ -8,32 +8,23 @@ import ru.ruslan.model.CreateFileVKResponse;
 import ru.ruslan.service.impl.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
 
 @Service
 public class VkEpcService {
     private static final Logger logger = LoggerFactory.getLogger(VkEpcService.class);
 
     private final RestClientService restClientService;
-    private final OracleDbService oracleDbService;
-    private final PostgreSqlDbService postgreSqlDbService;
     private final JavaScriptService javaScriptService;
     private final JsonProcessingService jsonProcessingService;
     private final HtmlProcessingService htmlProcessingService;
     private final ObjectMapper objectMapper;
 
     public VkEpcService(RestClientService restClientService,
-                        OracleDbService oracleDbService,
-                        PostgreSqlDbService postgreSqlDbService,
                         JavaScriptService javaScriptService,
                         JsonProcessingService jsonProcessingService,
                         HtmlProcessingService htmlProcessingService,
                         ObjectMapper objectMapper) {
         this.restClientService = restClientService;
-        this.oracleDbService = oracleDbService;
-        this.postgreSqlDbService = postgreSqlDbService;
         this.javaScriptService = javaScriptService;
         this.jsonProcessingService = jsonProcessingService;
         this.htmlProcessingService = htmlProcessingService;
@@ -46,13 +37,11 @@ public class VkEpcService {
 
         try {
             // 1. Получаем данные из Oracle
-            String oracleData = oracleDbService.getExerciseData(request.getOrderId());
 
             // 2. Получаем данные из PostgreSQL
-            String postgresData = postgreSqlDbService.getBillingData(request.getBillingAccount());
 
             // 3. Делаем REST запросы для получения дополнительных данных
-            String externalData = restClientService.fetchExternalData(request.getKNS());
+            String externalData = restClientService.fetchExternalData(request.getKns());
 
             // 4. Обрабатываем EPC параметры с помощью JavaScript
             String processedEpcParams = javaScriptService.processEpcParams(request.getEpcParams());
@@ -61,11 +50,11 @@ public class VkEpcService {
             JsonNode jsonNode = jsonProcessingService.parseAndProcessJson(externalData);
 
             // 6. Читаем файлы из указанного пути
-            String fileContent = restClientService.readFilesFromPath(request.getPathCreateFileVK());
+            String fileContent = restClientService.readFilesFromPath(request.getPathFileVK());
 
             // 7. Создаем HTML документ
             String htmlContent = htmlProcessingService.createHtmlDocument(
-                    request, oracleData, postgresData, jsonNode, processedEpcParams, fileContent);
+                    request, jsonNode, processedEpcParams, fileContent);
 
             return new CreateFileVKResponse(
                     "SUCCESS",

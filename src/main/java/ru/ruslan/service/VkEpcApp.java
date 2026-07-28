@@ -12,21 +12,15 @@ public class VkEpcApp {
     private static final Logger logger = LoggerFactory.getLogger(VkEpcApp.class);
 
     private final RestClientService restClientService;
-    private final OracleDbService oracleDbService;
-    private final PostgreSqlDbService postgreSqlDbService;
     private final JavaScriptService javaScriptService;
     private final JsonProcessingService jsonProcessingService;
     private final HtmlProcessingService htmlProcessingService;
 
     public VkEpcApp(RestClientService restClientService,
-                    OracleDbService oracleDbService,
-                    PostgreSqlDbService postgreSqlDbService,
                     JavaScriptService javaScriptService,
                     JsonProcessingService jsonProcessingService,
                     HtmlProcessingService htmlProcessingService) {
         this.restClientService = restClientService;
-        this.oracleDbService = oracleDbService;
-        this.postgreSqlDbService = postgreSqlDbService;
         this.javaScriptService = javaScriptService;
         this.jsonProcessingService = jsonProcessingService;
         this.htmlProcessingService = htmlProcessingService;
@@ -35,16 +29,6 @@ public class VkEpcApp {
     public String processRestRequests(String kns) {
         logger.info("Processing REST requests for KNS: {}", kns);
         return restClientService.fetchExternalData(kns);
-    }
-
-    public String processOracleQueries(String orderId) {
-        logger.info("Processing Oracle queries for orderId: {}", orderId);
-        return oracleDbService.getExerciseData(orderId);
-    }
-
-    public String processPostgreSqlQueries(String billingAccount) {
-        logger.info("Processing PostgreSQL queries for billingAccount: {}", billingAccount);
-        return postgreSqlDbService.getBillingData(billingAccount);
     }
 
     public String processJavaScript(String epcParams) {
@@ -62,6 +46,6 @@ public class VkEpcApp {
                               String processedEpcParams, String fileContent) {
         logger.info("Processing HTML document");
         return htmlProcessingService.createHtmlDocument(
-                request, oracleData, postgresData, jsonNode, processedEpcParams, fileContent);
+                request, jsonNode, processedEpcParams, fileContent);
     }
 }

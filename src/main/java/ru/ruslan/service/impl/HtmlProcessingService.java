@@ -14,8 +14,6 @@ public class HtmlProcessingService {
     private static final Logger logger = LoggerFactory.getLogger(HtmlProcessingService.class);
 
     public String createHtmlDocument(CreateFileVKRequest request,
-                                     String oracleData,
-                                     String postgresData,
                                      JsonNode jsonNode,
                                      String processedEpcParams,
                                      String fileContent) {
@@ -42,19 +40,17 @@ public class HtmlProcessingService {
         requestSection.appendElement("h2").text("Request Information");
         requestSection.appendElement("p").text("Order ID: " + request.getOrderId());
         requestSection.appendElement("p").text("Exercise ID: " + request.getExerciseId());
-        requestSection.appendElement("p").text("KNS: " + request.getKNS());
+        requestSection.appendElement("p").text("KNS: " + request.getKns());
         requestSection.appendElement("p").text("Billing Account: " + request.getBillingAccount());
         requestSection.appendElement("p").text("Time: " + request.getTime());
 
         // Секция с данными из Oracle
         Element oracleSection = body.appendElement("div").addClass("section");
         oracleSection.appendElement("h2").text("Oracle Database Data");
-        oracleSection.appendElement("pre").text(oracleData);
 
         // Секция с данными из PostgreSQL
         Element postgresSection = body.appendElement("div").addClass("section");
         postgresSection.appendElement("h2").text("PostgreSQL Database Data");
-        postgresSection.appendElement("pre").text(postgresData);
 
         // Секция с JSON данными
         Element jsonSection = body.appendElement("div").addClass("section");
