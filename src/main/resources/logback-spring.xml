@@ -20,11 +20,11 @@
             </pattern>
         </encoder>
 
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+        <!-- ИСКУССТВЕННОЕ ИЗМЕНЕНИЕ: Используем SizeAndTimeBasedRollingPolicy напрямую -->
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
             <fileNamePattern>${LOGS}/archived/embed-file-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
-            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
-                <maxFileSize>10MB</maxFileSize>
-            </timeBasedFileNamingAndTriggeringPolicy>
+            <!-- Параметр размера файла теперь указывается прямо здесь -->
+            <maxFileSize>10MB</maxFileSize>
             <maxHistory>30</maxHistory>
         </rollingPolicy>
     </appender>
