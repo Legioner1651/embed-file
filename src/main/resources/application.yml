@@ -6,13 +6,13 @@ server:
 spring:
   application:
     name: embed-file
-  jackson:
+#  jackson:
     # Отключаем запись дат в виде таймстампов (чисел), чтобы Instant сериализовался в формате ISO-8601 (строка)
-    serialization:
-      write-dates-as-timestamps: false
+#    serialization:
+#      WRITE_DATES_AS_TIMESTAMPS: false
     # Поддержка корректного часового пояса при парсинге дат
-    deserialization:
-      adjust-dates-to-context-time-zone: false
+#    deserialization:
+#      ADJUST_DATES_TO_CONTEXT_TIME_ZONE: false
 
 app:
   external-api:

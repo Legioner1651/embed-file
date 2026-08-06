@@ -29,7 +29,7 @@ public class FileService {
             return Files.readString(Path.of(filePath), StandardCharsets.UTF_8);
         } catch (IOException e) {
             log.error("Ошибка чтения файла из ФС по пути {}: {}", filePath, e.getMessage());
-            throw new RuntimeException("Не удалось прочитать файл из ФС: " + filePath, e);
+            throw new RuntimeException("Не удалось прочитать файл по адресу : " + filePath, e);
         }
     }
 

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import java.util.TimeZone;
 
 @Configuration
 public class JacksonConfig {
@@ -13,7 +14,13 @@ public class JacksonConfig {
     @Primary
     public ObjectMapper objectMapper() {
         ObjectMapper mapper = new ObjectMapper();
-        mapper.registerModule(new JavaTimeModule()); // Добавляет поддержку Instant, LocalDate и т.д.
+
+        // Регистрируем модуль поддержки современных Java 8+ дат (включая Instant)
+        mapper.registerModule(new JavaTimeModule());
+
+        // Устанавливаем единую временную зону для приложения
+        mapper.setTimeZone(TimeZone.getTimeZone("UTC"));
+
         return mapper;
     }
 }
