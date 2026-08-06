@@ -1,27 +1,46 @@
 package ru.ruslan.controller;
 
+import lombok.Data;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import ru.ruslan.model.CreateFileVKRequest;
-import ru.ruslan.model.CreateFileVKResponse;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import ru.ruslan.service.VkEpcService;
+
+import java.time.Instant;
 
 @RestController
 @RequestMapping("/api")
+@RequiredArgsConstructor
 public class VkEpcController {
 
     private final VkEpcService vkEpcService;
 
-    public VkEpcController(VkEpcService vkEpcService) {
-        this.vkEpcService = vkEpcService;
-    }
-
-    @PostMapping(value = "/createFileVK",
+    @PostMapping(value = "/vk/files",
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<CreateFileVKResponse> createFileVK(@RequestBody CreateFileVKRequest request) {
-        CreateFileVKResponse response = vkEpcService.processRequest(request);
+    public ResponseEntity<VkEpcResponse> processVkFiles(@RequestBody VkEpcRequest request) {
+        VkEpcResponse response = vkEpcService.processEpcData(request);
         return ResponseEntity.ok(response);
+    }
+
+    @Data
+    public static class VkEpcRequest {
+        private String pathCreateFileVK;
+        private String orderId;
+        private String exerciseId;
+        private String KNS;
+        private String billingAccount;
+        private Instant time;
+        private String epcParams;
+    }
+
+    @Data
+    public static class VkEpcResponse {
+        private String status;
+        private String message;
     }
 }

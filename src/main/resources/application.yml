@@ -1,38 +1,26 @@
+server:
+  port: 8089
+  servlet:
+    context-path: /
+
 spring:
   application:
     name: embed-file
+  jackson:
+    # Отключаем запись дат в виде таймстампов (чисел), чтобы Instant сериализовался в формате ISO-8601 (строка)
+    serialization:
+      write-dates-as-timestamps: false
+    # Поддержка корректного часового пояса при парсинге дат
+    deserialization:
+      adjust-dates-to-context-time-zone: false
 
-  datasource:
-    oracle:
-      url: jdbc:oracle:thin:@//localhost:1521/ORCLPDB1
-      username: ${ORACLE_USERNAME:oracle_user}
-      password: ${ORACLE_PASSWORD:oracle_password}
-      driver-class-name: oracle.jdbc.OracleDriver
-      hikari:
-        maximum-pool-size: 10
-        minimum-idle: 5
-        connection-timeout: 30000
-        idle-timeout: 600000
-        max-lifetime: 1800000
-
-    postgresql:
-      url: jdbc:postgresql://localhost:5432/vk_epc_db
-      username: ${POSTGRES_USERNAME:postgres_user}
-      password: ${POSTGRES_PASSWORD:postgres_password}
-      driver-class-name: org.postgresql.Driver
-      hikari:
-        maximum-pool-size: 10
-        minimum-idle: 5
-        connection-timeout: 30000
-        idle-timeout: 600000
-        max-lifetime: 1800000
-
-server:
-  port: 8989
+app:
+  external-api:
+    base-url: https://external.service
 
 logging:
+  config: classpath:logback.xml
   level:
     root: INFO
     ru.ruslan: DEBUG
     org.springframework.web: INFO
-    org.springframework.jdbc: DEBUG

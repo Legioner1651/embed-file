@@ -1,87 +1,55 @@
 package ru.ruslan.service;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-import ru.ruslan.model.CreateFileVKRequest;
-import ru.ruslan.model.CreateFileVKResponse;
-import ru.ruslan.service.impl.*;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import ru.ruslan.controller.VkEpcController.VkEpcRequest;
+import ru.ruslan.controller.VkEpcController.VkEpcResponse;
+import ru.ruslan.service.impl.JsonNodeService;
 
+import ru.ruslan.service.impl.*;
+
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class VkEpcService {
-    private static final Logger logger = LoggerFactory.getLogger(VkEpcService.class);
 
+    // Внедряем зависимости через конструктор (благодаря Lombok @RequiredArgsConstructor)
+    private final FileService fileService;
     private final RestClientService restClientService;
-    private final OracleDbService oracleDbService;
-    private final PostgreSqlDbService postgreSqlDbService;
+    private final JsonNodeService jsonNodeService;
     private final JavaScriptService javaScriptService;
-    private final JsonProcessingService jsonProcessingService;
-    private final HtmlProcessingService htmlProcessingService;
-    private final ObjectMapper objectMapper;
+    private final JsoupService jsoupService;
 
-    public VkEpcService(RestClientService restClientService,
-                        OracleDbService oracleDbService,
-                        PostgreSqlDbService postgreSqlDbService,
-                        JavaScriptService javaScriptService,
-                        JsonProcessingService jsonProcessingService,
-                        HtmlProcessingService htmlProcessingService,
-                        ObjectMapper objectMapper) {
-        this.restClientService = restClientService;
-        this.oracleDbService = oracleDbService;
-        this.postgreSqlDbService = postgreSqlDbService;
-        this.javaScriptService = javaScriptService;
-        this.jsonProcessingService = jsonProcessingService;
-        this.htmlProcessingService = htmlProcessingService;
-        this.objectMapper = objectMapper;
-    }
+    public VkEpcResponse processEpcData(VkEpcRequest request) {
+        log.info("Запуск обработки логики для orderId: {}", request.getOrderId());
 
-    public CreateFileVKResponse processRequest(CreateFileVKRequest request) {
-        logger.info("Processing VK EPC request for orderId: {}, exerciseId: {}",
-                request.getOrderId(), request.getExerciseId());
+        // Исправлено: Вызов через экземпляр jsonNodeService (с маленькой буквы)
+        JsonNode inputParams = jsonNodeService.parseJsonNode(request.getEpcParams());
 
-        try {
-            // 1. Получаем данные из Oracle
-            String oracleData = oracleDbService.getExerciseData(request.getOrderId());
+        jsonNodeService.printTemplateForEPC(inputParams);
 
-            // 2. Получаем данные из PostgreSQL
-            String postgresData = postgreSqlDbService.getBillingData(request.getBillingAccount());
+        // Исправлено: Вызов через экземпляр restClientService и передача параметров из инстанса jsonNodeService
+        JsonNode calcResult = restClientService.getProdBackCalculateFindByBankbookEIP(
+                request.getBillingAccount(),
+                jsonNodeService.getOrponCode(inputParams)
+        );
 
-            // 3. Делаем REST запросы для получения дополнительных данных
-            String externalData = restClientService.fetchExternalData(request.getKNS());
+        // Исправлено: Модифицируем JSON, используя методы экземпляра jsonNodeService
+        JsonNode resultsNode = jsonNodeService.getResultsFromResponse(calcResult);
+        jsonNodeService.deleteProperties(resultsNode);
+        jsonNodeService.changeValue2EmptyArray(inputParams, "properties");
 
-            // 4. Обрабатываем EPC параметры с помощью JavaScript
-            String processedEpcParams = javaScriptService.processEpcParams(request.getEpcParams());
+        // Исправлено: Преобразуем в строку через экземпляр сервиса
+        String finalPayload = jsonNodeService.jsonNodeToString(inputParams, true);
 
-            // 5. Обрабатываем JSON данные
-            JsonNode jsonNode = jsonProcessingService.parseAndProcessJson(externalData);
+        // Записываем результат в файловую систему
+        fileService.writeToFileSystem(request.getPathCreateFileVK(), finalPayload);
 
-            // 6. Читаем файлы из указанного пути
-            String fileContent = restClientService.readFilesFromPath(request.getPathCreateFileVK());
-
-            // 7. Создаем HTML документ
-            String htmlContent = htmlProcessingService.createHtmlDocument(
-                    request, oracleData, postgresData, jsonNode, processedEpcParams, fileContent);
-
-            return new CreateFileVKResponse(
-                    "SUCCESS",
-                    "File created successfully",
-                    htmlContent,
-                    "vk_epc_" + request.getOrderId() + ".html"
-            );
-
-        } catch (Exception e) {
-            logger.error("Error processing VK EPC request", e);
-            return new CreateFileVKResponse(
-                    "ERROR",
-                    "Failed to process request: " + e.getMessage(),
-                    null,
-                    null
-            );
-        }
+        VkEpcResponse response = new VkEpcResponse();
+        response.setStatus("SUCCESS");
+        response.setMessage("Файл успешно эмбеддирован и сохранен по пути " + request.getPathCreateFileVK());
+        return response;
     }
 }

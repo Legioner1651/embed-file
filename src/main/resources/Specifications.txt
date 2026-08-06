@@ -1,0 +1,86 @@
+На Java 17 и Spring Boot 4.0.7 создать код проекта сервиса с именем embed-file, который:
+
+1. ru/ruslan/controller/VkEpcController.java
+имеет API для взаимодействия с сервисом embed-file
+@RestController
+@RequestMapping("/api")
+@PostMapping(value = "/vk/files",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+Формат данных (Content-Type): application/json
+
+Request содержит body:
+{
+  "pathCreateFileVK": "string",
+  "orderId": "string",
+  "exerciseId": "string",
+  "KNS": "string",
+  "billingAccount": "string",
+  "time": "Instant",
+  "epcParams": "string"
+}
+
+Response содержит:
+	status code
+	body (json)
+
+2. Класс ru/ruslan/service/impl/FileService.java
+содержит:
+- метод чтения файлов из resources
+- метод чтения файла из файловой системы по расположению файла
+- метод создания файла в файловой системе по расположению файла
+- обрабатывает всевозможные исключения связанные с доступом к файлам
+
+3. Класс ru/ruslan/service/impl/RestClientService.java
+содержит:
+- методы REST (GET, POST) запросов к внешнему сервису по url и получение ответа
+- методам класса доступны для использования методы класса FileService
+- public static JsonNode getProdBackCalculateFindByBankbookEIP(String billAccounts, String orponCode) - выполняет POST, тело запроса содержит billAccounts и orponCode
+
+4. Класс ru/ruslan/service/impl/JsonNodeService.java
+- методам класса доступны для использования методы класса FileService
+содержит методы работы с json объектами
+- public static JsonNode parseJsonNode(String jsonCode) - Парсит строку JSON в объект JsonNode.
+- public static String jsonNodeToString(JsonNode jsonNode, boolean isPretty) - Преобразует JsonNode в строку.
+- public static void printTemplateForEPC(JsonNode jsonNode) - Вывод в лог необходимой информации из jsonNode
+- public static List<String> getAccounts(JsonNode jsonNode) - получение списка данных из jsonNode
+- public static String getOrponCode(JsonNode jsonNode) - получение строковой информации из jsonNode
+- public static String getOrponAddress(JsonNode jsonNode) - получение строковой информации из jsonNode
+- public static String getTypeOperation(JsonNode jsonNode) - получение строковой информации из jsonNode
+- public static String getTechnology(JsonNode jsonNode) - получение строковой информации из jsonNode
+- public static JsonNode getResultsFromResponse(JsonNode jsonNode) { return jsonNode.path("results"); }
+- public static void changeValue(JsonNode jsonNode, String node, JsonNode newValue) - замена одного узла на другой
+- public static void changeValue2EmptyArray(JsonNode jsonNode, String node) - поле с именем, переданным в переменной node, и перезаписывает его значение созданным пустым массивом
+- public static void deleteProperties(JsonNode resultsArray) - в resultsArray если находим узел "properties" то удаляем его
+
+5. Класс ru/ruslan/service/impl/JavaScriptService.java
+- методам класса доступны для использования методы класса FileService
+содержит методы работы с JS объектами
+- public static Node parseJsCode(String jsCode) - Создание com.google.javascript.rhino.Node из строки JS-кода
+- public static String toJsCode(Node node, boolean isPretty) - Создание строки JS-кода из com.google.javascript.rhino.Node.
+- public static void insertBeforeByName(Node root, String targetName, Node newNode) - Добавление нового узла ПЕРЕД узлом с определенным именем (идентификатором)
+- public static void deleteNodeByName(Node root, String targetName) - Удаление узла по его имени (идентификатору)
+- public static void replaceNodeByName(Node root, String targetName, Node newNode) - Замена узла с определенным именем на новый узел
+- public static Node findNodeByName(Node node, String name) - Рекурсивный поиск узла типа NAME с конкретным строковым значением
+- public static List<Node> findNodesByType(Node node, Token type) - Поиск всех узлов по типу токена (например, Token.FUNCTION)
+- public static void replaceReadyNode(Node root, Node jsonAstPatch) - Поиск и замена узла в AST
+- public static Node convertJsonToAst(JsonNode jsonNode) - Преобразование JsonNode в Node (AST)
+
+6. Класс ru/ruslan/service/impl/JsoupService.java
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+содержит методы работы с Html объектами
+- методам класса доступны для использования методы класса FileService
+- public static void logStructure(Document doc) - логирование структуры
+- private static void buildTagTree(Element element, StringBuilder sb, int depth) - строит текстовое дерево HTML/XML-тегов, отображая их структуру и вложенность с помощью отступов
+
+7. Класс ru/ruslan/EmbedFileApplication.java - класс с приложением
+
+8. Класс ru/ruslan/service/VkEpcService.java - содержит бизнес логику
+- методам класса доступны для использования методы класса FileService, JsoupService, JavaScriptService, RestClientService, JsonNodeService
+
+9. Класс ru/ruslan/service/VkEpcServiceTest.java
+- методам класса доступны для использования методы класса FileService
+класс с unit тестами, для подготовки тестовых данных и для получения эталонного значения используются методы класса FileService
+
+10. Логирование через @Slf4j, с использованием logback

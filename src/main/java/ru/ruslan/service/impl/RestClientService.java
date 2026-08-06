@@ -1,64 +1,78 @@
 package ru.ruslan.service.impl;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.ResponseEntity;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.stream.Collectors;
-
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class RestClientService {
-    private static final Logger logger = LoggerFactory.getLogger(RestClientService.class);
 
-    private final RestTemplate restTemplate;
+    private final FileService fileServiceInstance;
+    private final RestClient restClientInstance;
+    private final ObjectMapper objectMapperInstance;
 
-    public RestClientService(RestTemplate restTemplate) {
-        this.restTemplate = restTemplate;
+    // Статические поля для обеспечения работы статического метода
+    private static FileService fileService;
+    private static RestClient restClient;
+    private static ObjectMapper mapper;
+
+    @PostConstruct
+    private void init() {
+        fileService = this.fileServiceInstance;
+        restClient = this.restClientInstance;
+        mapper = this.objectMapperInstance;
     }
 
-    public String fetchExternalData(String kns) {
-        logger.info("Fetching external data for KNS: {}", kns);
-
-        // Пример REST запроса к внешнему сервису
-        String url = "http://external-service/api/data?kns=" + kns;
-        ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
-
-        return response.getBody();
-    }
-
-    public String readFilesFromPath(String path) {
-        logger.info("Reading files from path: {}", path);
-
+    public JsonNode executeGet(String uriPath) {
         try {
-            Path filePath = Paths.get(path);
-            if (Files.exists(filePath) && Files.isDirectory(filePath)) {
-                return Files.list(filePath)
-                        .filter(Files::isRegularFile)
-                        .map(this::readFileContent)
-                        .collect(Collectors.joining("\n"));
-            } else if (Files.exists(filePath) && Files.isRegularFile(filePath)) {
-                return readFileContent(filePath);
-            }
-        } catch (IOException e) {
-            logger.error("Error reading files from path: {}", path, e);
+            log.info("Выполнение динамического GET запроса по пути: {}", uriPath);
+            return restClientInstance.get()
+                    .uri(uriPath)
+                    .retrieve()
+                    .body(JsonNode.class);
+        } catch (Exception e) {
+            log.error("Ошибка при выполнении GET запроса к {}: {}", uriPath, e.getMessage());
+            throw new RuntimeException("Ошибка внешнего GET-запроса", e);
         }
-
-        return "";
     }
 
-    private String readFileContent(Path filePath) {
+    public JsonNode executePost(String uriPath, Object body) {
         try {
-            return Files.readString(filePath);
-        } catch (IOException e) {
-            logger.error("Error reading file: {}", filePath, e);
-            return "";
+            log.info("Выполнение динамического POST запроса по пути: {}", uriPath);
+            return restClientInstance.post()
+                    .uri(uriPath)
+                    .body(body)
+                    .retrieve()
+                    .body(JsonNode.class);
+        } catch (Exception e) {
+            log.error("Ошибка при выполнении POST запроса к {}: {}", uriPath, e.getMessage());
+            throw new RuntimeException("Ошибка внешнего POST-запроса", e);
+        }
+    }
+
+    public static JsonNode getProdBackCalculateFindByBankbookEIP(String billAccounts, String orponCode) {
+        String relativePath = "/prod-back/calculate";
+        ObjectNode payload = mapper.createObjectNode();
+        payload.put("billAccounts", billAccounts);
+        payload.put("orponCode", orponCode);
+
+        try {
+            log.info("Выполнение статического POST для аккаунта: {} по пути: {}", billAccounts, relativePath);
+            return restClient.post()
+                    .uri(relativePath)
+                    .body(payload)
+                    .retrieve()
+                    .body(JsonNode.class);
+        } catch (Exception e) {
+            log.error("Ошибка статического POST запроса к {}: {}", relativePath, e.getMessage());
+            throw new RuntimeException("Ошибка выполнения статического POST расчета", e);
         }
     }
 }
