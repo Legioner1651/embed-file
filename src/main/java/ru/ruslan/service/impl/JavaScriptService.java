@@ -3,7 +3,9 @@ package ru.ruslan.service.impl;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.javascript.jscomp.Compiler;
 import com.google.javascript.jscomp.CompilerOptions;
+import com.google.javascript.jscomp.NodeTraversal;
 import com.google.javascript.jscomp.SourceFile;
+import com.google.javascript.jscomp.parsing.Config;
 import com.google.javascript.rhino.IR;
 import com.google.javascript.rhino.Node;
 import com.google.javascript.rhino.Token;
@@ -12,8 +14,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Slf4j
 @Service
@@ -31,15 +37,50 @@ public class JavaScriptService {
     public static Node parseJsCode(String jsCode) {
         Compiler compiler = new Compiler();
         CompilerOptions options = new CompilerOptions();
+
+        // Отключаем оптимизации, чтобы получить чистое исходное дерево
+//        options.setParseJsDocDocumentation(Config.JsDocParsing.INCLUDE_DESCRIPTIONS_WITH_WHITESPACE);
+
         compiler.initOptions(options);
         return compiler.parse(SourceFile.fromCode("input.js", jsCode));
     }
 
+
     public static String toJsCode(Node node, boolean isPretty) {
         Compiler compiler = new Compiler();
         CompilerOptions options = new CompilerOptions();
+
         options.setPrettyPrint(isPretty);
-        return compiler.toSource(node);
+        options.setLineLengthThreshold(isPretty ? 80 : Integer.MAX_VALUE);  // Метод задаёт порог длины строки в символах.
+        options.setOutputCharset(StandardCharsets.UTF_8);
+        options.setTrustedStrings(true);                        // Запрещаем экранировать кириллицу (сохраняем non-ASCII символы)
+
+        compiler.initOptions(options);                          // Инициализируем опции внутри компилятора
+
+        String compiledCode = compiler.toSource(node);
+
+        // 1. Регулярное выражение находит только числа с буквой E или e (экспоненты)
+        Pattern pattern = Pattern.compile("(?<=[:\\[, ]|^)\\b([0-9]+(?:\\.[0-9]+)?[eE][-+]?[0-9]+)\\b");
+        Matcher matcher = pattern.matcher(compiledCode);
+
+        StringBuilder sb = new StringBuilder();
+        while (matcher.find()) {
+            String match = matcher.group(1);
+
+            // Переводим экспоненту в обычный вид (например, 45E3 -> "45000")
+            String normalNumber = new BigDecimal(match).toPlainString();
+
+            // 2. ТО САМОЕ УСЛОВИЕ: если число раскрылось как целое (в строке нет точки),
+            // принудительно дописываем ".0", чтобы сохранить признак вещественного числа
+            if (!normalNumber.contains(".")) {
+                normalNumber += ".0";
+            }
+
+            matcher.appendReplacement(sb, normalNumber);
+        }
+        matcher.appendTail(sb);
+
+        return sb.toString();
     }
 
     public static void insertBeforeByName(Node root, String targetName, Node newNode) {

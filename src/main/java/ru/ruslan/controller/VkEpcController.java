@@ -1,5 +1,6 @@
 package ru.ruslan.controller;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -13,13 +14,13 @@ import ru.ruslan.service.VkEpcService;
 import java.time.Instant;
 
 @RestController
-@RequestMapping("/api")
+//@RequestMapping("/api")
 @RequiredArgsConstructor
 public class VkEpcController {
 
     private final VkEpcService vkEpcService;
 
-    @PostMapping(value = "/vk/files",
+    @PostMapping(value = "${endpoints.embed-file}",
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<VkEpcResponse> processVkFiles(@RequestBody VkEpcRequest request) {
@@ -29,13 +30,15 @@ public class VkEpcController {
 
     @Data
     public static class VkEpcRequest {
-        private String pathCreateFileVK;
-        private String orderId;
+        @NotBlank(message = "Поле pathNewFileVK обязательно для заполнения")
+        private String pathNewFileVK;
+        @NotBlank(message = "Поле txtEpcParams обязательно для заполнения")
+        private String textEpcParams;
         private String exerciseId;
+        private String orderId;
         private String KNS;
         private String billingAccount;
         private Instant time;
-        private String epcParams;
     }
 
     @Data

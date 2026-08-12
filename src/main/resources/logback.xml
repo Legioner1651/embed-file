@@ -6,6 +6,8 @@
         </encoder>
     </appender>
 
+    <!-- ALL < TRACE < DEBUG < INFO < WARN < ERROR < OFF -->
+
     <root level="INFO">
         <appender-ref ref="STDOUT" />
     </root>

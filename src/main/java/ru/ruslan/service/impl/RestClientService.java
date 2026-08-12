@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
@@ -22,6 +23,9 @@ public class RestClientService {
     private static FileService fileService;
     private static RestClient restClient;
     private static ObjectMapper mapper;
+
+    @Value("${rest.client.service.bankbook-url}")
+    private String bankbookEipUrl;
 
     @PostConstruct
     private void init() {
@@ -57,22 +61,59 @@ public class RestClientService {
         }
     }
 
-    public static JsonNode getProdBackCalculateFindByBankbookEIP(String billAccounts, String orponCode) {
-        String relativePath = "/prod-back/calculate";
-        ObjectNode payload = mapper.createObjectNode();
-        payload.put("billAccounts", billAccounts);
-        payload.put("orponCode", orponCode);
+    public JsonNode getProdBackCalculateFindByBankbookEIP(String billAccounts, String orponCode) {
+
+        // 2. Формируем JSON-тело запроса (экранированная строка из Postman)
+        String jsonBody2 = """
+                {
+                    "method": "getProductOfferCfg",
+                    "version": "2.0",
+                    "methodParams": {
+                        "marketSegments": [
+                            {
+                                "codeName": "3"
+                            }
+                        ],
+                        "checkRequiredProps": true,
+                        "properties": [
+                            {
+                                "codeName": "ADDRESS_ORPON",
+                                "value": [
+                                    "%s"
+                                ]
+                            }
+                        ],
+                        "identification": {
+                            "ids": [
+                                "%s"
+                            ],
+                            "systemId": "EIP",
+                            "typeId": "account"
+                        }
+                    },
+                    "configId": "snoop"
+                }
+                """.formatted(orponCode, billAccounts);
+
+        jsonBody2 = jsonBody2.strip();
+        jsonBody2 = jsonBody2.replace("\n", "").replace(" ", "");
+
+        log.info("-".repeat(50));
+        log.info("JSON-тело REST запроса к ОВ = \n" + jsonBody2 + "\n");
+        log.info("-".repeat(50));
 
         try {
-            log.info("Выполнение статического POST для аккаунта: {} по пути: {}", billAccounts, relativePath);
+            log.info("Выполнение POST запроса");
             return restClient.post()
-                    .uri(relativePath)
-                    .body(payload)
+                    .uri(bankbookEipUrl)
+                    .header("Content-Type", "application/json")
+                    .header("X-StepRequest", "1")
+                    .body(jsonBody2)
                     .retrieve()
                     .body(JsonNode.class);
         } catch (Exception e) {
-            log.error("Ошибка статического POST запроса к {}: {}", relativePath, e.getMessage());
-            throw new RuntimeException("Ошибка выполнения статического POST расчета", e);
+            log.error("Ошибка POST запроса {}", e.getMessage());
+            throw new RuntimeException("Трассировка стека ошибки выполнения POST запроса", e);
         }
     }
 }

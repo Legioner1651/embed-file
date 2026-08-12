@@ -1,7 +1,15 @@
 server:
   port: 8089
   servlet:
-    context-path: /
+    context-path: /api
+
+endpoints:
+  embed-file: /vk/files
+
+rest:
+  client:
+    service:
+      bankbookEIP-url: "https://epc-api.rt.ru/apiman-gateway/epc-wc/srv-dispatcher/1.8.5?apikey=0eb58769-34f6-4960-bb72-e2d31eafc6a6"
 
 spring:
   application:
@@ -18,9 +26,11 @@ app:
   external-api:
     base-url: https://external.service
 
+#  ALL < TRACE < DEBUG < INFO < WARN < ERROR < FATAL < OFF
+
 logging:
   config: classpath:logback.xml
   level:
     root: INFO
-    ru.ruslan: DEBUG
+    ru.ruslan: debug
     org.springframework.web: INFO

@@ -1,0 +1,28 @@
+{
+  "method": "getProductOfferCfg",
+  "version": "2.0",
+  "methodParams": {
+    "marketSegments": [
+      {
+        "codeName": "3"
+      }
+    ],
+    "checkRequiredProps": true,
+    "properties": [
+      {
+        "codeName": "ADDRESS_ORPON",
+        "value": [
+          "32617698"
+        ]
+      }
+    ],
+    "identification": {
+      "ids": [
+        "850018744815"
+      ],
+      "systemId": "EIP",
+      "typeId": "account"
+    }
+  },
+  "configId": "snoop"
+}

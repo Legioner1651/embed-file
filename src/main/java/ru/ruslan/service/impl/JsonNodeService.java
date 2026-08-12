@@ -41,31 +41,68 @@ public class JsonNodeService {
         log.info("Шаблон EPC данные: {}", jsonNodeToString(jsonNode, false));
     }
 
-    public List<String> getAccounts(JsonNode jsonNode) {
-        List<String> accounts = new ArrayList<>();
-        JsonNode accNode = jsonNode.path("accounts");
-        if (accNode.isArray()) {
-            for (JsonNode node : accNode) {
-                accounts.add(node.asText());
+    /** Лицевые счета */
+    public static List<String> getAccounts(JsonNode jsonNode) {
+
+        // Инициализируем список для хранения всех IDS
+        List<String> ids = new ArrayList<>();
+
+        for (JsonNode node : jsonNode.path("clientProperties")) {
+            if ("account".equals(node.path("typeId").asText()) && "EIP".equals(node.path("systemId").asText())) {
+                // Перебираем все элементы внутри найденного массива "ids"
+                for (JsonNode idNode : node.path("ids")) {
+                    ids.add(idNode.asText());
+                }
             }
         }
-        return accounts;
+
+        return ids;
     }
 
-    public String getOrponCode(JsonNode jsonNode) {
-        return jsonNode.path("orponCode").asText("");
+    /** ОРПОН код адреса абонента */
+    public static String getOrponCode(JsonNode jsonNode) {
+
+        String globalId = jsonNode.path("address").path("id").asText();
+
+        return globalId;
     }
 
-    public String getOrponAddress(JsonNode jsonNode) {
-        return jsonNode.path("orponAddress").asText("");
+    /** Адрес абонента */
+    public static String getOrponAddress(JsonNode jsonNode) {
+        String globalId = jsonNode.path("address").path("name").asText();
+
+        return globalId;
     }
 
-    public String getTypeOperation(JsonNode jsonNode) {
-        return jsonNode.path("typeOperation").asText("");
+    /** Бизнес процесс */
+    public static String getTypeOperation(JsonNode jsonNode) {
+        for (JsonNode node : jsonNode.path("properties")) {
+            if ("AVAILABILITY_FOR_CUSTOMERS_VK".equals(node.path("codeName").asText())) {
+                String typeOperation = node.path("value").path(0).asText();
+                if (typeOperation.equals("NEW_CUSTOMERS")) {
+                    return "продажа";
+                } else if (typeOperation.equals("EXISTING_CUSTOMERS")) {
+                    return "УУ";
+                }
+            }
+        }
+
+        return null;
     }
 
-    public String getTechnology(JsonNode jsonNode) {
-        return jsonNode.path("technology").asText("");
+    /** Используемая технология */
+    public static String getTechnology(JsonNode jsonNode) {
+
+        // Итерируемся по элементам массива techAvInfo
+        for (JsonNode node : jsonNode.path("techAvInfo")) {
+            // Ищем нужный productType
+            if ("SHPD".equals(node.path("productType").asText())) {
+                // Берем первый элемент из массива techAv и достаем technology
+                return node.path("techAv").path(0).path("technology").asText();
+            }
+        }
+
+        return null;
     }
 
     public JsonNode getResultsFromResponse(JsonNode jsonNode) {
