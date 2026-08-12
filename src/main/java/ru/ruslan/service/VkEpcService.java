@@ -63,7 +63,7 @@ public class VkEpcService {
         // 1.1. Загрузка файла Template.html в templateHTML (org.jsoup.nodes.Document).
         log.debug("-".repeat(86) + "1.1");
         log.info("1.1. Загрузка файла Template.html в templateHTML (org.jsoup.nodes.Document)");
-        String textTemplate = FileService.readFromResources("Template.html");
+        String textTemplate = fileService.readFromResources("Template.html");
         Document templateHTML = JsoupService.getJsoupNodesDocumentFromString(textTemplate);
         log.trace("templateHTML =\n{}\n", templateHTML);
 
@@ -313,7 +313,7 @@ public class VkEpcService {
      * На выходе JSON в формате строки.
      * @param epcParams исходный текст для ЕПК
      */
-    public static String getStringEpcParams(String epcParams) {
+    public String getStringEpcParams(String epcParams) {
         int DEBUG_LEVEL = 0;
 
         if (epcParams == null || epcParams.trim().isEmpty() || epcParams.equals("")) {
@@ -323,9 +323,9 @@ public class VkEpcService {
         epcParams = epcParams.trim();
 
         // если текст является URL адресом файла, тогда читаем файл
-        if (FileService.isPathValid(epcParams)) {                                        // проверка на URL
+        if (fileService.isPathValid(epcParams)) {                                        // проверка на URL
 
-            epcParams = FileService.readFromFileSystem(epcParams);
+            epcParams = fileService.readFromFileSystem(epcParams);
 
             if (epcParams == null || epcParams.trim().isEmpty() || epcParams.equals("")) {
                 throw new StopExecutionException("getStringEpcParams: в прочитанном файле нет данных");

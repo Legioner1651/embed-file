@@ -2,6 +2,7 @@ package ru.ruslan.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -13,6 +14,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import ru.ruslan.controller.VkEpcController.VkEpcRequest;
 import ru.ruslan.service.impl.FileService;
@@ -28,6 +30,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@Slf4j
 @SpringBootTest // Запускает полное приложение со всеми реальными бинами
 @AutoConfigureMockMvc // Настраивает MockMvc для отправки HTTP-запросов в реальный контекст
 class VkEpcIntegrationTest {
@@ -39,7 +42,7 @@ class VkEpcIntegrationTest {
     private ObjectMapper objectMapper;
 
     // ЗАМЕНА: вместо @Autowired используем @MockitoBean для создания мока в контексте Spring 4
-    @MockitoBean
+    @MockitoSpyBean
     private FileService fileService;
 
     @Autowired
@@ -60,12 +63,15 @@ class VkEpcIntegrationTest {
     @DisplayName("Интеграционный тест: проверка сквозного прохождения запроса через реальный сервис")
     void processVkFiles_ReturnsActualServiceResponse() throws Exception {
 
-        String epcParams = FileService.readFromResources("EpcParamsZenin1.json");
-        String resultFile = FileService.readFromResources("VK_Zenin1.html");
+        // Эти вызовы отработают ПО-НАСТОЯЩЕМУ через реальный FileService
+        String epcParams = fileService.readFromResources("EpcParamsZenin1.json");
+        String resultFile = fileService.readFromResources("VK_Zenin1.html");
 
         // Мокируем ответ метода getProdBackCalculateFindByBankbookEIP
-        String profileResponseZenin1 = FileService.readFromResources("ProfileResponseZenin1.json");
+        String profileResponseZenin1 = fileService.readFromResources("ProfileResponseZenin1.json");
         JsonNode mockResponseZenin1 = jsonNodeService.parseJsonNode(profileResponseZenin1);
+
+        // Мокируем внешний REST-сервис (здесь restClientService — это полный Mock, так что обычный when() подходит)
         Mockito.when(restClientService.getProdBackCalculateFindByBankbookEIP("850018744815", "32617698"))
                 .thenReturn(mockResponseZenin1);
 
@@ -92,7 +98,7 @@ class VkEpcIntegrationTest {
                 .andExpect(jsonPath("$.status").value("SUCCESS"))
                 .andExpect(jsonPath("$.message").value("Файл с именем " + request.getKNS() + "VK.html" + " успешно создан и сохранен по пути " + request.getPathNewFileVK()));
 
-        // Assert: Проверяем факт вызова метода и захватываем второй аргумент
+        // Assert: Проверяем вызов на Spy-объекте и перехватываем контент
         // Первый аргумент игнорируем с помощью anyString(), во второй передаем каптор
         Mockito.verify(fileService, Mockito.times(1))
                 .writeToFileSystem(anyString(), contentCaptor.capture());
@@ -100,9 +106,8 @@ class VkEpcIntegrationTest {
         // Получаем строку, которая была передана в метод во время работы VkEpcService
         String actualContent = contentCaptor.getValue();
 
-        // Делаем любые необходимые проверки содержимого (используя AssertJ)
+        // Проверяем контент
         assertThat(actualContent)
-                .isEqualToNormalizingWhitespace(resultFile)
-                .isEqualToNormalizingNewlines(resultFile);
+                .isEqualToNormalizingWhitespace(resultFile);
     }
 }

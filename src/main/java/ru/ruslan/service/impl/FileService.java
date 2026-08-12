@@ -15,7 +15,7 @@ import java.nio.file.Paths;
 @Service
 public class FileService {
 
-    public static String readFromResources(String resourcePath) {
+    public String readFromResources(String resourcePath) {
         try {
             ClassPathResource resource = new ClassPathResource(resourcePath);
             return Files.readString(Paths.get(resource.getURI()), StandardCharsets.UTF_8);
@@ -25,7 +25,7 @@ public class FileService {
         }
     }
 
-    public static String readFromFileSystem(String filePath) {
+    public String readFromFileSystem(String filePath) {
         try {
             return Files.readString(Path.of(filePath), StandardCharsets.UTF_8);
         } catch (IOException e) {
@@ -48,7 +48,7 @@ public class FileService {
         }
     }
 
-    public static boolean isPathValid(String pathStr) {
+    public boolean isPathValid(String pathStr) {
 
         // Отсекаем null, пустые строки и пробелы
         if (pathStr == null || pathStr.trim().isEmpty()) { return false; }
