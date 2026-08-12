@@ -34,7 +34,7 @@ public class FileService {
         }
     }
 
-    public static void writeToFileSystem(String filePath, String content) {
+    public void writeToFileSystem(String filePath, String content) {
         try {
             Path path = Path.of(filePath);
             if (path.getParent() != null) {

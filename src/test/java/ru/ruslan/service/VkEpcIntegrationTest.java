@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,6 +21,9 @@ import ru.ruslan.service.impl.RestClientService;
 
 import java.time.Instant;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
+
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -33,8 +38,8 @@ class VkEpcIntegrationTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    // Внедряем реальный FileService из контекста приложения
-    @Autowired
+    // ЗАМЕНА: вместо @Autowired используем @MockitoBean для создания мока в контексте Spring 4
+    @MockitoBean
     private FileService fileService;
 
     @Autowired
@@ -47,17 +52,25 @@ class VkEpcIntegrationTest {
     @Value("${endpoints.embed-file}")
     private String endpoint;
 
+    // Объявляем каптор для захвата второго аргумента (содержимого файла)
+    @Captor
+    private ArgumentCaptor<String> contentCaptor;
+
     @Test
     @DisplayName("Интеграционный тест: проверка сквозного прохождения запроса через реальный сервис")
     void processVkFiles_ReturnsActualServiceResponse() throws Exception {
 
         String epcParams = FileService.readFromResources("EpcParamsZenin1.json");
+        String resultFile = FileService.readFromResources("VK_Zenin1.html");
 
         // Мокируем ответ метода getProdBackCalculateFindByBankbookEIP
-        String profileResponseZenin1 = fileService.readFromResources("ProfileResponseZenin1.json");
+        String profileResponseZenin1 = FileService.readFromResources("ProfileResponseZenin1.json");
         JsonNode mockResponseZenin1 = jsonNodeService.parseJsonNode(profileResponseZenin1);
         Mockito.when(restClientService.getProdBackCalculateFindByBankbookEIP("850018744815", "32617698"))
                 .thenReturn(mockResponseZenin1);
+
+        // КЛЮЧЕВОЙ ШАГ: Мокаем void-метод записи в файловую систему, чтобы он ничего не делал
+        Mockito.doNothing().when(fileService).writeToFileSystem(Mockito.anyString(), Mockito.anyString());
 
         // Arrange (Готовим реальные данные для запроса)
         VkEpcRequest request = new VkEpcRequest();
@@ -78,5 +91,18 @@ class VkEpcIntegrationTest {
                 // возвращает при обработке этого файла:
                 .andExpect(jsonPath("$.status").value("SUCCESS"))
                 .andExpect(jsonPath("$.message").value("Файл с именем " + request.getKNS() + "VK.html" + " успешно создан и сохранен по пути " + request.getPathNewFileVK()));
+
+        // Assert: Проверяем факт вызова метода и захватываем второй аргумент
+        // Первый аргумент игнорируем с помощью anyString(), во второй передаем каптор
+        Mockito.verify(fileService, Mockito.times(1))
+                .writeToFileSystem(anyString(), contentCaptor.capture());
+
+        // Получаем строку, которая была передана в метод во время работы VkEpcService
+        String actualContent = contentCaptor.getValue();
+
+        // Делаем любые необходимые проверки содержимого (используя AssertJ)
+        assertThat(actualContent)
+                .isEqualToNormalizingWhitespace(resultFile)
+                .isEqualToNormalizingNewlines(resultFile);
     }
 }

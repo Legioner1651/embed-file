@@ -85,7 +85,7 @@ public class VkEpcService {
         log.debug("-".repeat(86) + "1.3");
         log.info("1.3. Получение конфигурации параметров встраивания ВК ЕПК - (ответ запроса /epcParams) -> epcParams (String) ");
         String epcParams = getStringEpcParams(textEpcParams);
-        log.debug("epcParams (Данные ЕПК из Kibana):\n{}\n", epcParams);
+        log.trace("epcParams (Данные ЕПК из Kibana):\n{}\n", epcParams);
 
         // 2.1. Получение scriptContent (String) - содержимое первого блока <script> из templateHTML
         log.debug("-".repeat(86) + "2.1");
@@ -113,14 +113,14 @@ public class VkEpcService {
 
         // получаем содержимое 1-го блока <script> в templateHTML
         String scriptContent = scriptFirst.data();
-        log.debug("scriptContent (String) - содержимое первого блока <script> из файла Template.html):\n{}\n", scriptContent);
+        log.trace("scriptContent (String) - содержимое первого блока <script> из файла Template.html):\n{}\n", scriptContent);
 
         // 2.2. Минифицирование scriptContent (String) (содержимое блока <script>) через создание rhino.Node jsAst
         log.debug("-".repeat(86) + "2.2");
         log.info("2.2. Минифицирование scriptContent (String) (содержимое блока <script>) через создание rhino.Node jsAst");
         com.google.javascript.rhino.Node jsAst = javaScriptService.parseJsCode(scriptContent);
         scriptContent = javaScriptService.toJsCode(jsAst, false);
-        log.debug("scriptContent (minified):\n{}\n", scriptContent);
+        log.trace("scriptContent (minified):\n{}\n", scriptContent);
 
         // 2.3. Получение minified epcParamsJson (String) из epcParams после проверки и редактирования под структуру файла ВК
         log.debug("-".repeat(86) + "2.3");
@@ -154,7 +154,7 @@ public class VkEpcService {
         }
 
         String epcParamsJson = jsonNodeService.jsonNodeToString(epcParamsJsonNode, false);
-        log.debug("epcParamsJson (minified) в значении элемента \"productOfferCfg\" - массив:\n{}\n", epcParamsJson);
+        log.trace("epcParamsJson (minified) в значении элемента \"productOfferCfg\" - массив:\n{}\n", epcParamsJson);
 
         // 2.4. Получение параметров из epcParamsJsonNode - распарсенной конфигурации параметров встраивания ВК ЕПК
         log.debug("-".repeat(86) + "2.4");
@@ -200,7 +200,7 @@ public class VkEpcService {
                 JsonNode resultsOB = jsonNodeService.getResultsFromResponse(bodyResponseOBJsonNode);
 
                 log.trace("-".repeat(60));
-                log.debug("resultsOB (значение элемента results полученного из response запроса PROD_ОВ) = \n{}\n", jsonNodeService.jsonNodeToString(resultsOB, true));
+                log.trace("resultsOB (значение элемента results полученного из response запроса PROD_ОВ) = \n{}\n", jsonNodeService.jsonNodeToString(resultsOB, true));
                 log.trace("-".repeat(60));
 
                 /**  Удалить параметр "properties"  */
@@ -225,7 +225,7 @@ public class VkEpcService {
 
                 epcParamsJson = jsonNodeService.jsonNodeToString(epcParamsJsonNode, false);
                 log.trace("-".repeat(60));
-                log.debug("epcParamsJson = (minified) epcParamsJsonNode = \n{}\n", epcParamsJson);
+                log.trace("epcParamsJson = (minified) epcParamsJsonNode = \n{}\n", epcParamsJson);
                 log.trace("-".repeat(60));
             } else {
                 log.debug("Результат запроса PROD_ОВ = null => объект resultsOB не обрабатываем");
@@ -239,12 +239,12 @@ public class VkEpcService {
         log.info("2.6. Вставка minified элементов epcParamsJson в minified scriptContent (String) => pretty scriptContent");
 
         scriptContent = scriptContent.replace("\"ready\":true", epcParamsJson.substring(1, epcParamsJson.length() - 1));
-        log.debug("scriptContent (minified):\n{}\n", scriptContent);
+        log.trace("scriptContent (minified):\n{}\n", scriptContent);
 
         // прогоняем через объект rhino.Node scriptContentAst, чтобы получить minified код JS
         com.google.javascript.rhino.Node scriptContentAst = javaScriptService.parseJsCode(scriptContent);
         scriptContent = javaScriptService.toJsCode(scriptContentAst, true);
-        log.debug("scriptContent (pretty):\n" + scriptContent);
+        log.trace("scriptContent (pretty):\n" + scriptContent);
 
         // 3.1. Замена блока <script> содержимым переменной pretty scriptContent (String)
         log.debug("-".repeat(86) + "3.1");
@@ -257,7 +257,7 @@ public class VkEpcService {
         log.debug("-".repeat(86) + "3.2");
         log.info("3.2. Сохранение содержимого templateHTML в файл absolutePath");
         // document.outerHtml() возвращает строковое представление HTML-кода
-        FileService.writeToFileSystem(pathNewFileVK, templateHTML.outerHtml());
+        fileService.writeToFileSystem(pathNewFileVK, templateHTML.outerHtml());
 
         log.trace("Структура DOM:");
         jsoupService.logStructure(templateHTML);

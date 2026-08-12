@@ -24,7 +24,7 @@ public class RestClientService {
     private static RestClient restClient;
     private static ObjectMapper mapper;
 
-    @Value("${rest.client.service.bankbook-url}")
+    @Value("${rest.client.service.bankbookEIP-url}")
     private String bankbookEipUrl;
 
     @PostConstruct

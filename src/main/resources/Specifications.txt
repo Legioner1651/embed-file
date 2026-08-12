@@ -115,4 +115,120 @@ public static Value parseJsCode(String jsCode)
 public static String toJsCode(Value node, boolean isPretty)
 
 -------------------------------------------------------------------------------------------------------------------------
+Для Spring Boot v. 4.0.7 и Java 21
+Как замокать метод в writeToFileSystem() в интеграционном тесте:
 
+package ru.ruslan.service.impl;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.stereotype.Service;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+@Slf4j
+@Service
+public class FileService {
+
+    public void writeToFileSystem(String filePath, String content) {
+        try {
+            Path path = Path.of(filePath);
+            if (path.getParent() != null) {
+                Files.createDirectories(path.getParent());
+            }
+            Files.writeString(path, content, StandardCharsets.UTF_8);
+            log.info("Файл успешно создан/обновлен по адресу: {}", filePath);
+        } catch (IOException e) {
+            log.error("Ошибка записи файла в ФС по пути {}: {}", filePath, e.getMessage());
+            throw new RuntimeException("Не удалось записать файл в ФС: " + filePath, e);
+        }
+    }
+
+}
+
+этот метод вызывется методом processEpcData из класса VkEpcService:
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class VkEpcService {
+
+    // Внедряем зависимости через конструктор (благодаря Lombok @RequiredArgsConstructor)
+    private final FileService fileService;
+    private final JavaScriptService javaScriptService;
+    private final JsonNodeService jsonNodeService;
+    private final JsoupService jsoupService;
+    private final RestClientService restClientService;
+
+    public VkEpcResponse processEpcData(VkEpcRequest request) { ... }
+
+Существующий класс с автотестом
+@SpringBootTest // Запускает полное приложение со всеми реальными бинами
+@AutoConfigureMockMvc // Настраивает MockMvc для отправки HTTP-запросов в реальный контекст
+class VkEpcIntegrationTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    // Внедряем реальный FileService из контекста приложения
+    @Autowired
+    private FileService fileService;
+
+    @Autowired
+    private JsonNodeService jsonNodeService;
+
+    // Внедряем заглушку внешнего сервиса embed-file в контекст Spring Boot 4
+    @MockitoBean
+    private RestClientService restClientService;
+
+    @Value("${endpoints.embed-file}")
+    private String endpoint;
+
+    @Test
+    @DisplayName("Интеграционный тест: проверка сквозного прохождения запроса через реальный сервис")
+    void processVkFiles_ReturnsActualServiceResponse() throws Exception {
+
+        String epcParams = FileService.readFromResources("EpcParamsZenin1.json");
+
+        // Мокируем ответ метода getProdBackCalculateFindByBankbookEIP
+        String profileResponseZenin1 = fileService.readFromResources("ProfileResponseZenin1.json");
+        JsonNode mockResponseZenin1 = jsonNodeService.parseJsonNode(profileResponseZenin1);
+        Mockito.when(restClientService.getProdBackCalculateFindByBankbookEIP("850018744815", "32617698"))
+                .thenReturn(mockResponseZenin1);
+
+        // Arrange (Готовим реальные данные для запроса)
+        VkEpcRequest request = new VkEpcRequest();
+        request.setPathNewFileVK("/home/ruslan/Documents/vkepc/");
+        request.setTextEpcParams(epcParams);
+        request.setExerciseId("123456789");
+        request.setOrderId("456789");
+        request.setKNS("KNS-1789");
+        request.setBillingAccount("1234567890");
+        request.setTime(Instant.now());
+
+        // Act & Assert
+        mockMvc.perform(post(endpoint)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                // Здесь укажите те значения, которые ваш реальный VkEpcService
+                // возвращает при обработке этого файла:
+                .andExpect(jsonPath("$.status").value("SUCCESS"))
+                .andExpect(jsonPath("$.message").value("Файл с именем " + request.getKNS() + "VK.html" + " успешно создан и сохранен по пути " + request.getPathNewFileVK()));
+    }
+}
+-------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------------------

@@ -113,13 +113,13 @@
                         "outerEntityType": "INET.TariffPlan",
                         "outerId": "1f_uThR_TD1",
                         "outerSystem": "RT.CENTER.SIP",
-                        "name": "Технологии развлечения. Тест-драйв",
+                        "name": "Технологии развлечения. Тест-драйв_082026",
                         "codeName": "850018744815",
                         "status": "On",
                         "validFor": {"startDateTime": "2026-06-16T00:02:07+03:00"},
                         "properties": [                        {
                            "codeName": "TARIFF_PLAN_NAME_ASR_SIP",
-                           "value": ["Технологии развлечения. Тест-драйв"]
+                           "value": ["Технологии развлечения. Тест-драйв_082026"]
                         }],
                         "alternativeCfs":                         {
                            "outerId": "TECH_IN+IP_FTTX",
